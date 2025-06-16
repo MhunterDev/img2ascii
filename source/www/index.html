@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ImgToASCII Conversion</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/main.js" defer></script>
+</head>
+<body>
+    <div class="conversionMain">
+        <div class="toolbox">
+            <div class="banner">
+                <h3 class="Iam">ImgToASCII Conversion</h3>
+                <p class="iDo">Convert images to ASCII art with a single click</p>
+            </div>
+            <div class="tool">
+                <form class="form" id="uploadForm" enctype="multipart/form-data">
+                    <input type="file" id="imageInput" name="file" accept="image/*" required>
+                    <button type="submit" id="submit">Convert</button>
+                </form>
+            </div>
+        </div>
+         <div class="resultBox">
+        <p>
+            <pre class="asciiOutput" id="asciiOutput"></pre>
+        </p>
+    </div>
+    </div>
+   
+</body>
+</html>

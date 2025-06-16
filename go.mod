@@ -4,6 +4,7 @@ go 1.24.3
 
 require (
 	github.com/gin-gonic/gin v1.10.1
+	github.com/google/uuid v1.6.0
 	golang.org/x/image v0.28.0
 )
 
