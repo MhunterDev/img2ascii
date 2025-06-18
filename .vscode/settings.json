@@ -1,5 +1,7 @@
 {
     "gopls": {
-        "buildFlags":["-tags=embed"]
+        "buildFlags":["-tags=embed",
+                     "-tags=main_embed"]
+                   
     }
 }
