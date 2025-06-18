@@ -3,13 +3,15 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"log"
-	"mime/multipart"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/MhunterDev/img2ascii/source/handlers"
+	"github.com/MhunterDev/img2ascii/source/middleware"
 	"github.com/gin-gonic/gin"
 )
 
@@ -29,6 +31,14 @@ func getEnv(key, fallback string) string {
 }
 
 func checkAndPopulate() error {
+	// Validate configuration
+	if maxUploadSize <= 0 {
+		return fmt.Errorf("invalid max upload size: %d", maxUploadSize)
+	}
+	if maxBannerLen <= 0 {
+		return fmt.Errorf("invalid max banner length: %d", maxBannerLen)
+	}
+
 	if _, err := os.Stat(outputDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(outputDir, 0700); err != nil {
 			log.Printf("Failed to create outputDir: %v", err)
@@ -50,15 +60,6 @@ func checkAndPopulate() error {
 		f.Close()
 	}
 	return nil
-}
-
-func allowedFileType(header *multipart.FileHeader) bool {
-	switch header.Header.Get("Content-Type") {
-	case "image/png", "image/jpeg", "image/gif":
-		return true
-	default:
-		return false
-	}
 }
 
 var globalTmpl *template.Template
@@ -90,6 +91,12 @@ func main() {
 	}
 
 	r := gin.Default()
+
+	// Add rate limiting middleware
+	// Allow 10 requests per minute per IP
+	rateLimiter := middleware.NewRateLimiter(10, time.Minute)
+	r.Use(middleware.RateLimitMiddleware(rateLimiter))
+
 	r.StaticFS("/static", staticFS)
 	r.GET("/", handlers.HandleHome(cfg))
 	r.POST("/upload", handlers.HandleUpload(cfg))

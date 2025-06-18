@@ -16,6 +16,20 @@ import (
 	xdraw "golang.org/x/image/draw"
 )
 
+// ASCII character sets for different purposes
+const (
+	defaultASCIIChars = "@#%*o()1l=:-."
+	bannerASCIIChars  = "@#*+=-:. "
+)
+
+// ConversionMode defines how ASCII conversion should be performed
+type ConversionMode int
+
+const (
+	ModeDefault ConversionMode = iota
+	ModeBanner
+)
+
 type Resolution struct {
 	Width  int
 	Height int
@@ -27,7 +41,7 @@ type Image struct {
 	Data []byte
 }
 
-func Run(mode bool, imgPath string, outputPath string) error {
+func Run(reverse bool, imgPath string, outputPath string) error {
 	file, err := os.Open(imgPath)
 	if err != nil {
 		return err
@@ -62,7 +76,7 @@ func Run(mode bool, imgPath string, outputPath string) error {
 	if err != nil {
 		return err
 	}
-	asciiArt := imgObj.toASCII(mode)
+	asciiArt := imgObj.toASCII(ModeDefault, reverse)
 	fileOut, err := os.OpenFile(outputPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
 	if err != nil {
 		return err
@@ -158,18 +172,27 @@ func reverseString(s string) string {
 	return string(runes)
 }
 
-func makeASCII(mode bool, i int) string {
-	ascii := "@#%*o()1l=:-."
-	if !mode {
-		a := reverseString(ascii)
-		idx := i * (len(ascii) - 1) / 255
-		return string(a[idx])
+func makeASCII(mode ConversionMode, reverse bool, luminance int) string {
+	var ascii string
+	switch mode {
+	case ModeBanner:
+		ascii = bannerASCIIChars
+	default:
+		ascii = defaultASCIIChars
 	}
-	idx := i * (len(ascii) - 1) / 255
+
+	if reverse {
+		ascii = reverseString(ascii)
+	}
+
+	idx := luminance * (len(ascii) - 1) / 255
+	if idx >= len(ascii) {
+		idx = len(ascii) - 1
+	}
 	return string(ascii[idx])
 }
 
-func (i Image) toASCII(mode bool) string {
+func (i Image) toASCII(mode ConversionMode, reverse bool) string {
 	lScores := i.toLumScores()
 	var asciiArt strings.Builder
 	asciiArt.Grow(i.Res.Width * (i.Res.Height + 1))
@@ -177,7 +200,7 @@ func (i Image) toASCII(mode bool) string {
 		for k := 0; k < i.Res.Width; k++ {
 			idx := j*i.Res.Width + k
 			if idx < len(lScores) {
-				asciiArt.WriteString(makeASCII(mode, lScores[idx]))
+				asciiArt.WriteString(makeASCII(mode, reverse, lScores[idx]))
 			}
 		}
 		asciiArt.WriteByte('\n')
@@ -228,7 +251,7 @@ func RunBanner(imgPath string, outputPath string, width, height int) error {
 		return err
 	}
 
-	asciiArt := imgObj.toASCIIBanner(true)
+	asciiArt := imgObj.toASCII(ModeBanner, false)
 	fileOut, err := os.OpenFile(outputPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
@@ -237,31 +260,4 @@ func RunBanner(imgPath string, outputPath string, width, height int) error {
 	_, err = fileOut.WriteString(asciiArt)
 	_ = os.WriteFile("img2ascii.log", []byte(asciiArt), 0644)
 	return err
-}
-
-func (i Image) toASCIIBanner(mode bool) string {
-	lScores := i.toLumScores()
-	var asciiArt strings.Builder
-	asciiArt.Grow(i.Res.Width * (i.Res.Height + 1))
-	for j := 0; j < i.Res.Height; j++ {
-		for k := 0; k < i.Res.Width; k++ {
-			idx := j*i.Res.Width + k
-			if idx < len(lScores) {
-				asciiArt.WriteString(bannerASCII(mode, lScores[idx]))
-			}
-		}
-		asciiArt.WriteByte('\n')
-	}
-	return asciiArt.String()
-}
-
-func bannerASCII(mode bool, i int) string {
-	ascii := "@#*+=-:. "
-	if !mode {
-		a := reverseString(ascii)
-		idx := i * (len(ascii) - 1) / 255
-		return string(a[idx])
-	}
-	idx := i * (len(ascii) - 1) / 255
-	return string(ascii[idx])
 }
