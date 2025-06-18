@@ -28,4 +28,34 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
     }
+
+    // Handle the banner submission 
+    var bannerForm = document.getElementById("bannerGen");
+    var bannerSubmit = document.getElementById("bannerSubmit");
+    var asciiOutput = document.getElementById("asciiOutput");
+    if (bannerForm && bannerSubmit && asciiOutput) {
+        bannerForm.addEventListener("submit", function (event) {
+            event.preventDefault();
+            bannerSubmit.disabled = true;
+            asciiOutput.textContent = "Generating banner...";
+            var formData = new FormData(bannerForm);
+            fetch("/banner", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(response.statusText);
+                return response.text();
+            })
+            .then(text => {
+                asciiOutput.textContent = text;
+            })
+            .catch(error => {
+                asciiOutput.textContent = "Error: " + error.message;
+            })
+            .finally(() => {
+                bannerSubmit.disabled = false;
+            });
+        });
+    }
 });

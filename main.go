@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"sync"
 
+	"github.com/MhunterDev/img2ascii/source/banners"
 	"github.com/MhunterDev/img2ascii/source/img2ascii"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -116,8 +117,40 @@ func main() {
 	r.Static("/static", wwwDir)
 	r.GET("/", handleHome)
 	r.POST("/upload", handleUpload)
+	r.POST("/banner", handleBanner)
 
 	if err := r.Run(":8080"); err != nil {
 		panic(err)
 	}
+}
+
+func handleBanner(c *gin.Context) {
+	bannerText := c.PostForm("bannerText")
+	if bannerText == "" {
+		c.String(400, "No banner text provided")
+		return
+	}
+	outputID := uuid.New().String()
+	outputPath := "/tmp/img2ascii/banner-" + outputID
+	banner := banners.Banner{
+		Message: bannerText,
+		Path:    outputPath,
+		Width:   50, // or any desired width
+		Height:  15, // or any desired height
+		Options: banners.BannerOptions{
+			Font:    "Notable-Regular", // or any available font
+			Reverse: true,
+		},
+	}
+	if err := banners.RenderBanner(banner); err != nil {
+		c.String(500, "Banner generation error: %v", err)
+		return
+	}
+	asciiPath := outputPath + ".txt"
+	data, err := os.ReadFile(asciiPath)
+	if err != nil {
+		c.String(500, "Failed to read ASCII output: %v", err)
+		return
+	}
+	c.Data(200, "text/plain; charset=utf-8", data)
 }
