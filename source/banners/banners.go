@@ -22,32 +22,31 @@ type BannerOptions struct {
 	Font       Font
 	Reverse    bool
 	Characters string
-	Style      string // e.g. "bold", "italic", etc.
+	Style      string
 }
 
 type Banner struct {
 	Message string
-	Path    string // Path to the image file
-	Width   int    // in characters
-	Height  int    // in lines
+	Path    string
+	Width   int
+	Height  int
 	Options BannerOptions
 }
 
-// RenderToImage renders the banner message to a PNG image and saves it to outPath.
 func (b *Banner) renderToImage() (string, error) {
 	outPath := b.Path
 	if b.Width <= 0 {
-		b.Width = 80 // More readable default width
+		b.Width = 80
 	}
 	if b.Height <= 0 {
-		b.Height = 10 // More readable default height
+		b.Height = 10
 	}
-	imgWidth := 5 + (b.Width * 16)   // 16px per character (approx)
-	imgHeight := 5 + (b.Height * 16) // 16px per line (approx)
+	imgWidth := 5 + (b.Width * 16)
+	imgHeight := 5 + (b.Height * 16)
 	dc := gg.NewContext(imgWidth, imgHeight)
 	dc.SetRGB(1, 1, 1)
 	dc.Clear()
-	fontSize := float64(imgHeight) * 0.8 // Larger font for clarity
+	fontSize := float64(imgHeight) * 0.8
 	fontPath := b.Options.Font.Path()
 	if err := dc.LoadFontFace(fontPath, fontSize); err != nil {
 		return "", fmt.Errorf("failed to load font: %w", err)
@@ -61,7 +60,6 @@ func (b *Banner) renderToImage() (string, error) {
 	return pngPath, nil
 }
 
-// resizeRGBA resizes an RGBA image to the target width and height using bilinear scaling.
 func (b *Banner) resizeRGBA(pngPath string) (*image.RGBA, error) {
 	src, err := gg.LoadPNG(pngPath)
 	if err != nil {
@@ -86,21 +84,9 @@ func RenderBanner(b Banner) error {
 		return fmt.Errorf("failed to save resized image: %w", err)
 	}
 	asciiPath := b.Path + ".txt"
-	err = img2ascii.RunBanner(resizedPngPath, asciiPath, b.Width, b.Height) // Convert the image to ASCII
+	err = img2ascii.RunBanner(resizedPngPath, asciiPath, b.Width, b.Height)
 	if err != nil {
 		return fmt.Errorf("failed to convert image to ASCII: %w", err)
 	}
 	return nil
 }
-
-// In img2ascii.go, update bannerASCII to use a high-contrast set
-// func bannerASCII(mode bool, i int) string {
-// 	ascii := "@#*+=-:. "
-// 	if !mode {
-// 		a := reverseString(ascii)
-// 		idx := i * (len(ascii) - 1) / 255
-// 		return string(a[idx])
-// 	}
-// 	idx := i * (len(ascii) - 1) / 255
-// 	return string(ascii[idx])
-// }

@@ -27,7 +27,6 @@ type Image struct {
 	Data []byte
 }
 
-// Run creates an ASCII art file from an image at imgPath with the given mode (true=normal, false=inverted) and writes to outputPath.
 func Run(mode bool, imgPath string, outputPath string) error {
 	file, err := os.Open(imgPath)
 	if err != nil {
@@ -70,11 +69,10 @@ func Run(mode bool, imgPath string, outputPath string) error {
 	}
 	defer fileOut.Close()
 	_, err = fileOut.WriteString(asciiArt)
-	os.WriteFile("img2ascii.log", []byte(asciiArt), 0644)
+	_ = os.WriteFile("img2ascii.log", []byte(asciiArt), 0644)
 	return err
 }
 
-// newImage loads and optionally resizes an image, returning an Image struct with pixel data.
 func newImage(imgPath string, targetWidth, targetHeight int) (*Image, error) {
 	file, err := os.Open(imgPath)
 	if err != nil {
@@ -106,7 +104,6 @@ func newImage(imgPath string, targetWidth, targetHeight int) (*Image, error) {
 	}, nil
 }
 
-// Pixel represents a single RGBA pixel (not used in optimized code, but kept for clarity).
 type Pixel struct {
 	R int
 	G int
@@ -114,18 +111,15 @@ type Pixel struct {
 	A int
 }
 
-// pixelCount returns the total number of pixels in the resolution.
 func (r Resolution) pixelCount() int {
 	return r.Width * r.Height
 }
 
-// calculateLuminance computes the perceived brightness of an RGB pixel.
 func calculateLuminance(r, g, b int) int {
 	l := 0.2126*float64(r) + 0.7152*float64(g) + 0.0722*float64(b)
 	return int(math.Round(l))
 }
 
-// toLumScores computes luminance scores for all pixels in the image in parallel.
 func (i Image) toLumScores() []int {
 	pixelCount := i.Res.pixelCount()
 	lScores := make([]int, pixelCount)
@@ -156,7 +150,6 @@ func (i Image) toLumScores() []int {
 	return lScores
 }
 
-// reverseString reverses a string (used for inverted ASCII mode).
 func reverseString(s string) string {
 	runes := []rune(s)
 	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
@@ -165,7 +158,6 @@ func reverseString(s string) string {
 	return string(runes)
 }
 
-// makeASCII maps a luminance value to an ASCII character, supporting normal and inverted modes.
 func makeASCII(mode bool, i int) string {
 	ascii := "@#%*o()1l=:-."
 	if !mode {
@@ -174,11 +166,9 @@ func makeASCII(mode bool, i int) string {
 		return string(a[idx])
 	}
 	idx := i * (len(ascii) - 1) / 255
-
 	return string(ascii[idx])
 }
 
-// toASCII converts the image's luminance scores to an ASCII art string.
 func (i Image) toASCII(mode bool) string {
 	lScores := i.toLumScores()
 	var asciiArt strings.Builder
@@ -195,7 +185,6 @@ func (i Image) toASCII(mode bool) string {
 	return asciiArt.String()
 }
 
-// resizeRGBA resizes an RGBA image to the target width and height using bilinear scaling.
 func resizeRGBA(src *image.RGBA, targetWidth, targetHeight int) *image.RGBA {
 	dst := image.NewRGBA(image.Rect(0, 0, targetWidth, targetHeight))
 	xdraw.ApproxBiLinear.Scale(dst, dst.Bounds(), src, src.Bounds(), xdraw.Over, nil)
@@ -246,9 +235,10 @@ func RunBanner(imgPath string, outputPath string, width, height int) error {
 	}
 	defer fileOut.Close()
 	_, err = fileOut.WriteString(asciiArt)
-	os.WriteFile("img2ascii.log", []byte(asciiArt), 0644)
+	_ = os.WriteFile("img2ascii.log", []byte(asciiArt), 0644)
 	return err
 }
+
 func (i Image) toASCIIBanner(mode bool) string {
 	lScores := i.toLumScores()
 	var asciiArt strings.Builder
@@ -273,6 +263,5 @@ func bannerASCII(mode bool, i int) string {
 		return string(a[idx])
 	}
 	idx := i * (len(ascii) - 1) / 255
-
 	return string(ascii[idx])
 }

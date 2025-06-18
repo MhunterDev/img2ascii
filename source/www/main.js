@@ -29,10 +29,8 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Handle the banner submission 
     var bannerForm = document.getElementById("bannerGen");
     var bannerSubmit = document.getElementById("bannerSubmit");
-    var asciiOutput = document.getElementById("asciiOutput");
     if (bannerForm && bannerSubmit && asciiOutput) {
         bannerForm.addEventListener("submit", function (event) {
             event.preventDefault();

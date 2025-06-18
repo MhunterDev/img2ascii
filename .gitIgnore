@@ -1,0 +1,41 @@
+# Binaries and build output
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.o
+*.a
+*.log
+
+# Go workspace and module files
+vendor/
+Gopkg.lock
+Gopkg.toml
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Output and temp files
+/tmp/
+*.tmp
+*.temp
+*.cache
+
+# Application output
+img2ascii.log
+*.txt
+
+# Embedded assets (if generated)
+source/www/assets_embed.go

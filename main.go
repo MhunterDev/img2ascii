@@ -1,156 +1,101 @@
+//go:build !embed
+
 package main
 
 import (
 	"html/template"
+	"log"
+	"mime/multipart"
+	"net/http"
 	"os"
-	"os/exec"
-	"sync"
 
-	"github.com/MhunterDev/img2ascii/source/banners"
-	"github.com/MhunterDev/img2ascii/source/img2ascii"
+	"github.com/MhunterDev/img2ascii/source/handlers"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
-var tmpl *template.Template
-
-const (
-	outputDir  = "/tmp/img2ascii"
-	outputFile = "/tmp/img2ascii/output.txt"
-	wwwDir     = "/tmp/img2ascii/www"
+var (
+	outputDir     = getEnv("IMG2ASCII_OUTPUT_DIR", "/tmp/img2ascii")
+	outputFile    = getEnv("IMG2ASCII_OUTPUT_FILE", "/tmp/img2ascii/output.txt")
+	wwwDir        = getEnv("IMG2ASCII_WWW_DIR", "/tmp/img2ascii/www")
+	maxUploadSize = int64(2 << 20)
+	maxBannerLen  = 64
 )
+
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
 
 func checkAndPopulate() error {
 	if _, err := os.Stat(outputDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(outputDir, 0700); err != nil {
-			panic(err)
+			log.Printf("Failed to create outputDir: %v", err)
+			return err
 		}
 	}
 	if _, err := os.Stat(wwwDir); os.IsNotExist(err) {
 		if err := os.Mkdir(wwwDir, 0700); err != nil {
-			panic(err)
+			log.Printf("Failed to create wwwDir: %v", err)
+			return err
 		}
-
 	}
 	if _, err := os.Stat(outputFile); os.IsNotExist(err) {
 		f, err := os.Create(outputFile)
 		if err != nil {
-			panic(err)
+			log.Printf("Failed to create outputFile: %v", err)
+			return err
 		}
 		f.Close()
 	}
 	return nil
 }
 
-func handleUpload(c *gin.Context) {
-	upFile, err := c.FormFile("file")
-	if err != nil {
-		c.String(400, "File upload error: %v", err)
-		return
+func allowedFileType(header *multipart.FileHeader) bool {
+	switch header.Header.Get("Content-Type") {
+	case "image/png", "image/jpeg", "image/gif":
+		return true
+	default:
+		return false
 	}
-	tmpFile, err := os.CreateTemp("/tmp", "upload-*.img")
-	if err != nil {
-		c.String(500, "Failed to create temp file: %v", err)
-		return
-	}
-	defer os.Remove(tmpFile.Name())
-	defer tmpFile.Close()
-	file, err := upFile.Open()
-	if err != nil {
-		c.String(500, "Failed to open uploaded file: %v", err)
-		return
-	}
-	defer file.Close()
-	if _, err := tmpFile.ReadFrom(file); err != nil {
-		c.String(500, "Failed to save uploaded file: %v", err)
-		return
-	}
-
-	outputID := uuid.New().String()
-	outputPath := "/tmp/img2ascii/output-" + outputID + ".txt"
-	var wg sync.WaitGroup
-	wg.Add(1)
-	var runErr error
-	go func() {
-		defer wg.Done()
-		runErr = img2ascii.Run(true, tmpFile.Name(), outputPath)
-	}()
-	wg.Wait()
-	if runErr != nil {
-		c.String(500, "ASCII conversion error: %v", runErr)
-		return
-	}
-	defer os.Remove(outputPath)
-	if _, err := os.Stat(outputPath); err != nil {
-		c.String(500, "Output file not found: %v", err)
-		return
-	}
-	c.File(outputPath)
 }
 
-func handleHome(c *gin.Context) {
-	c.Header("Content-Type", "text/html")
-	err := tmpl.Execute(c.Writer, nil)
+var globalTmpl *template.Template
+
+func getStaticFS() (tmpl *template.Template, staticFS http.FileSystem, err error) {
+	tmpl, err = template.ParseFiles("source/www/index.html")
 	if err != nil {
-		c.String(500, "Template execution error: %v", err)
+		return nil, nil, err
 	}
+	return tmpl, http.Dir(wwwDir), nil
 }
 
 func main() {
-
 	if err := checkAndPopulate(); err != nil {
-		panic(err)
+		log.Fatalf("Startup error: %v", err)
 	}
 
-	script := "cp source/www/index.html /tmp/img2ascii/www/index.html && cp source/www/styles.css /tmp/img2ascii/www/styles.css && cp source/www/main.js /tmp/img2ascii/www/main.js"
-	if err := exec.Command("sh", "-c", script).Run(); err != nil {
-		panic(err)
-	}
-
-	var err error
-	tmpl, err = template.ParseFiles("source/www/index.html")
+	tmpl, staticFS, err := getStaticFS()
 	if err != nil {
-		panic(err)
+		log.Fatalf("Static/template error: %v", err)
+	}
+	globalTmpl = tmpl
+
+	cfg := &handlers.Config{
+		OutputDir:     outputDir,
+		MaxUploadSize: maxUploadSize,
+		MaxBannerLen:  maxBannerLen,
+		GlobalTmpl:    globalTmpl,
 	}
 
 	r := gin.Default()
-	r.Static("/static", wwwDir)
-	r.GET("/", handleHome)
-	r.POST("/upload", handleUpload)
-	r.POST("/banner", handleBanner)
+	r.StaticFS("/static", staticFS)
+	r.GET("/", handlers.HandleHome(cfg))
+	r.POST("/upload", handlers.HandleUpload(cfg))
+	r.POST("/banner", handlers.HandleBanner(cfg))
 
 	if err := r.Run(":8080"); err != nil {
-		panic(err)
+		log.Fatalf("Server error: %v", err)
 	}
-}
-
-func handleBanner(c *gin.Context) {
-	bannerText := c.PostForm("bannerText")
-	if bannerText == "" {
-		c.String(400, "No banner text provided")
-		return
-	}
-	outputID := uuid.New().String()
-	outputPath := "/tmp/img2ascii/banner-" + outputID
-	banner := banners.Banner{
-		Message: bannerText,
-		Path:    outputPath,
-		Width:   50, // or any desired width
-		Height:  15, // or any desired height
-		Options: banners.BannerOptions{
-			Font:    "Notable-Regular", // or any available font
-			Reverse: true,
-		},
-	}
-	if err := banners.RenderBanner(banner); err != nil {
-		c.String(500, "Banner generation error: %v", err)
-		return
-	}
-	asciiPath := outputPath + ".txt"
-	data, err := os.ReadFile(asciiPath)
-	if err != nil {
-		c.String(500, "Failed to read ASCII output: %v", err)
-		return
-	}
-	c.Data(200, "text/plain; charset=utf-8", data)
 }
