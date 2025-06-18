@@ -17,20 +17,28 @@ Convert images and text banners to ASCII art via a modern web interface.
 ## Installation
 
 1. **Clone the repository:**
+
    ```sh
    git clone https://github.com/MhunterDev/img2ascii.git
    cd img2ascii
    ```
+
 2. **Install dependencies:**
+
    ```sh
    go mod download
    ```
+
 3. **Build and run:**
+
    - For local development (no embed):
+
      ```sh
      go run main.go
      ```
+
    - For production (with embedded assets):
+
      ```sh
      go run -tags=embed main_embed.go
      ```
@@ -38,21 +46,26 @@ Convert images and text banners to ASCII art via a modern web interface.
 ## Usage
 
 1. **Start the server:**
+
    ```sh
    go run main.go
    # or
    go run -tags=embed main_embed.go
    ```
+
 2. **Open your browser:**
    Navigate to [http://localhost:8080](http://localhost:8080)
+
 3. **Convert an image:**
    - Use the upload form to select and submit an image file.
    - The ASCII art will be displayed in the output area.
+
 4. **Generate a banner(beta):** 
    - Enter your text in the banner form and submit.
    - The ASCII banner will be displayed in the output area.
 
 ## Configuration
+
 You can override default directories and output files using environment variables:
 - `IMG2ASCII_OUTPUT_DIR` — Output directory for ASCII files (default: `/tmp/img2ascii`)
 - `IMG2ASCII_OUTPUT_FILE` — Default output file (default: `/tmp/img2ascii/output.txt`)
@@ -61,6 +74,7 @@ You can override default directories and output files using environment variable
 > **Note:** Output files are temporary and cleaned up after use unless you change the output directory.
 
 ## Project Structure
+
 ```
 go.mod, go.sum         # Go module files
 main.go                # Main entrypoint (no embed)
@@ -80,6 +94,7 @@ source/
 
 ## Testing
 Run the included tests with:
+
 ```sh
 go test ./...
 ```
