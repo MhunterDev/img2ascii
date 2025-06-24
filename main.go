@@ -1,17 +1,17 @@
-//go:build !embed
-
 package main
 
 import (
 	"fmt"
 	"html/template"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/MhunterDev/img2ascii/source/handlers"
 	"github.com/MhunterDev/img2ascii/source/middleware"
+	"github.com/MhunterDev/img2ascii/source/www"
 	"github.com/gin-gonic/gin"
 )
 
@@ -62,14 +62,23 @@ func checkAndPopulate() error {
 	return nil
 }
 
+func allowedFileType(header *multipart.FileHeader) bool {
+	switch header.Header.Get("Content-Type") {
+	case "image/png", "image/jpeg", "image/gif":
+		return true
+	default:
+		return false
+	}
+}
+
 var globalTmpl *template.Template
 
 func getStaticFS() (tmpl *template.Template, staticFS http.FileSystem, err error) {
-	tmpl, err = template.ParseFiles("source/www/index.html")
+	tmpl, err = template.ParseFS(www.StaticFiles, "index.html")
 	if err != nil {
 		return nil, nil, err
 	}
-	return tmpl, http.Dir(wwwDir), nil
+	return tmpl, http.FS(www.StaticFiles), nil
 }
 
 func main() {
