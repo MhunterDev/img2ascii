@@ -30,6 +30,23 @@ const (
 	ModeBanner
 )
 
+// AspectRatioMode defines how aspect ratio should be handled
+type AspectRatioMode int
+
+const (
+	AspectScale AspectRatioMode = iota // Scale maintaining aspect ratio (default)
+	AspectPixel                        // 1:1 pixel mapping, no scaling
+	AspectFixed                        // Fixed output size, ignore aspect ratio
+)
+
+type ConversionOptions struct {
+	AspectMode  AspectRatioMode
+	FixedWidth  int
+	FixedHeight int
+	Reverse     bool
+	Mode        ConversionMode
+}
+
 type Resolution struct {
 	Width  int
 	Height int
@@ -253,6 +270,80 @@ func RunBanner(imgPath string, outputPath string, width, height int) error {
 
 	asciiArt := imgObj.toASCII(ModeBanner, false)
 	fileOut, err := os.OpenFile(outputPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer fileOut.Close()
+	_, err = fileOut.WriteString(asciiArt)
+	_ = os.WriteFile("img2ascii.log", []byte(asciiArt), 0644)
+	return err
+}
+
+func RunWithOptions(imgPath string, outputPath string, options ConversionOptions) error {
+	file, err := os.Open(imgPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	img, _, err := image.Decode(file)
+	if err != nil {
+		return err
+	}
+	bounds := img.Bounds()
+	origWidth := bounds.Dx()
+	origHeight := bounds.Dy()
+
+	var targetWidth, targetHeight int
+
+	switch options.AspectMode {
+	case AspectPixel:
+		// 1:1 pixel mapping - use original dimensions with reasonable limits
+		targetWidth = origWidth
+		targetHeight = origHeight
+		// Limit to prevent browser crashes with very large images
+		maxPixelWidth := 300
+		maxPixelHeight := 200
+		if targetWidth > maxPixelWidth {
+			ratio := float64(maxPixelWidth) / float64(targetWidth)
+			targetWidth = maxPixelWidth
+			targetHeight = int(float64(targetHeight) * ratio)
+		}
+		if targetHeight > maxPixelHeight {
+			ratio := float64(maxPixelHeight) / float64(targetHeight)
+			targetHeight = maxPixelHeight
+			targetWidth = int(float64(targetWidth) * ratio)
+		}
+	case AspectFixed:
+		// Fixed output size - use specified dimensions
+		targetWidth = options.FixedWidth
+		targetHeight = options.FixedHeight
+	default: // AspectScale
+		// Scale maintaining aspect ratio (original behavior)
+		maxWidth := 65
+		maxHeight := 54
+		imgAspect := float64(origWidth) / float64(origHeight)
+		pageAspect := float64(maxWidth) / float64(maxHeight)
+		if imgAspect > pageAspect {
+			targetWidth = maxWidth
+			targetHeight = int(float64(maxWidth) / imgAspect)
+			if targetHeight > maxHeight {
+				targetHeight = maxHeight
+			}
+		} else {
+			targetHeight = maxHeight
+			targetWidth = int(float64(maxHeight) * imgAspect)
+			if targetWidth > maxWidth {
+				targetWidth = maxWidth
+			}
+		}
+	}
+
+	imgObj, err := newImage(imgPath, targetWidth, targetHeight)
+	if err != nil {
+		return err
+	}
+	asciiArt := imgObj.toASCII(options.Mode, options.Reverse)
+	fileOut, err := os.OpenFile(outputPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
 	if err != nil {
 		return err
 	}

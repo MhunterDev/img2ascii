@@ -2,6 +2,19 @@ document.addEventListener("DOMContentLoaded", function () {
     var form = document.getElementById("uploadForm");
     var submit = document.getElementById("submit");
     var asciiOutput = document.getElementById("asciiOutput");
+    var aspectMode = document.getElementById("aspectMode");
+    var sizeOptions = document.getElementById("sizeOptions");
+
+    // Handle aspect mode changes
+    if (aspectMode && sizeOptions) {
+        aspectMode.addEventListener("change", function() {
+            if (aspectMode.value === "fixed") {
+                sizeOptions.style.display = "block";
+            } else {
+                sizeOptions.style.display = "none";
+            }
+        });
+    }
 
     if (form && submit && asciiOutput) {
         form.addEventListener("submit", function (event) {

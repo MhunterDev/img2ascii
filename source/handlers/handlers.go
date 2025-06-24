@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/MhunterDev/img2ascii/source/banners"
@@ -146,7 +147,44 @@ func HandleUpload(cfg *Config) gin.HandlerFunc {
 		outputID := uuid.New().String()
 		outputPath := filepath.Join(cfg.OutputDir, fmt.Sprintf("output-%s.txt", outputID))
 
-		runErr := img2ascii.Run(true, tmpFile.Name(), outputPath)
+		// Parse aspect ratio options
+		aspectMode := c.PostForm("aspectMode")
+		options := img2ascii.ConversionOptions{
+			AspectMode: img2ascii.AspectScale, // default
+			Reverse:    true,
+			Mode:       img2ascii.ModeDefault,
+		}
+
+		switch aspectMode {
+		case "pixel":
+			options.AspectMode = img2ascii.AspectPixel
+		case "fixed":
+			// Parse width and height for fixed size
+			if widthStr := c.PostForm("outputWidth"); widthStr != "" {
+				if width := parseIntDefault(widthStr, 80); width > 0 && width <= 200 {
+					options.FixedWidth = width
+				} else {
+					options.FixedWidth = 80
+				}
+			} else {
+				options.FixedWidth = 80
+			}
+
+			if heightStr := c.PostForm("outputHeight"); heightStr != "" {
+				if height := parseIntDefault(heightStr, 40); height > 0 && height <= 100 {
+					options.FixedHeight = height
+				} else {
+					options.FixedHeight = 40
+				}
+			} else {
+				options.FixedHeight = 40
+			}
+			options.AspectMode = img2ascii.AspectFixed
+		default: // "scale" or empty
+			options.AspectMode = img2ascii.AspectScale
+		}
+
+		runErr := img2ascii.RunWithOptions(tmpFile.Name(), outputPath, options)
 		if runErr != nil {
 			log.Printf("ASCII conversion error: %v", runErr)
 			c.String(500, "Conversion failed")
@@ -279,4 +317,12 @@ func sanitizeFilename(filename string) string {
 	}
 
 	return safe
+}
+
+// parseIntDefault parses a string to int with a default fallback
+func parseIntDefault(s string, defaultVal int) int {
+	if val, err := strconv.Atoi(s); err == nil {
+		return val
+	}
+	return defaultVal
 }

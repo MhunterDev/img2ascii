@@ -4,10 +4,15 @@ Convert images and text banners to ASCII art via a modern web interface.
 
 ## Features
 - Upload images (PNG, JPEG, GIF) and convert them to ASCII art.
+- **Multiple aspect ratio modes:**
+  - **Aspect Ratio Scaling** - Maintains image proportions within 65x54 character limits
+  - **1:1 Pixel Map** - Direct pixel-to-character mapping with safety limits (300x200 max)
+  - **Fixed Output Size** - Custom width/height dimensions (10-200 width, 10-100 height)
 - Generate ASCII art banners from custom text using included fonts.
 - Download or view ASCII output directly in the browser.
-- Modern, responsive web UI.
+- Modern, responsive web UI with intuitive controls.
 - Fast, concurrent image processing in Go.
+- Rate limiting and file validation for security.
 
 ## Requirements
 - Go 1.24+
@@ -31,36 +36,40 @@ Convert images and text banners to ASCII art via a modern web interface.
 
 3. **Build and run:**
 
-   - For local development (no embed):
+   ```sh
+   go build -tags embed
+   ./img2ascii
+   ```
 
-     ```sh
-     go run main.go
-     ```
+   Or run directly:
 
-   - For production (with embedded assets):
-
-     ```sh
-     go run -tags=embed main_embed.go
-     ```
+   ```sh
+   go run -tags embed main.go
+   ```
 
 ## Usage
 
 1. **Start the server:**
 
    ```sh
-   go run main.go
+   ./img2ascii
    # or
-   go run -tags=embed main_embed.go
+   go run -tags embed main.go
    ```
 
 2. **Open your browser:**
    Navigate to [http://localhost:8080](http://localhost:8080)
 
 3. **Convert an image:**
-   - Use the upload form to select and submit an image file.
-   - The ASCII art will be displayed in the output area.
+   - Use the upload form to select an image file.
+   - Choose your preferred aspect ratio mode:
+     - **Aspect Ratio Scaling (default)** - Maintains proportions, fits in 65x54 characters
+     - **1:1 Pixel Map** - Direct pixel mapping with reasonable size limits
+     - **Fixed Output Size** - Specify exact width/height dimensions
+   - For fixed size mode, adjust the width (10-200) and height (10-100) values as needed.
+   - Submit to see the ASCII art displayed in the output area.
 
-4. **Generate a banner(beta):** 
+4. **Generate a banner (beta):**
    - Enter your text in the banner form and submit.
    - The ASCII banner will be displayed in the output area.
 
@@ -77,20 +86,23 @@ You can override default directories and output files using environment variable
 
 ```
 go.mod, go.sum         # Go module files
-main.go                # Main entrypoint (no embed)
-main_embed.go          # Main entrypoint (with embed)
+main.go                # Main entrypoint (with embedded assets)
 main_test.go           # Basic tests
 source/
   banners/             # Banner rendering logic and fonts
-  handlers/            # HTTP handlers
+  handlers/            # HTTP handlers with aspect ratio support
   img2ascii/           # Image-to-ASCII conversion logic
+  middleware/          # Rate limiting and other middleware
   www/                 # Static web assets (HTML, CSS, JS)
 ```
 
 ## Development
-- Static assets are served from `source/www/` in development.
-- For production, assets can be embedded using Go's `embed` package (see `main_embed.go`).
+
+- Static assets are embedded using Go's `embed` package for easy deployment.
 - Banner fonts are stored in `source/banners/fonts/` and are included by default.
+- The application supports three aspect ratio modes for flexible ASCII output.
+- Rate limiting and file validation are implemented for security.
+- Concurrent image processing provides fast conversion times.
 
 ## Testing
 Run the included tests with:

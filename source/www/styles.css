@@ -99,3 +99,36 @@ body {
     margin: 0 auto;
     display: block;
 }
+
+.aspect-options, .size-options {
+    margin: 15px 0;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+}
+
+.aspect-options label, .size-options label {
+    display: block;
+    margin-bottom: 5px;
+    color: #000;
+    font-weight: bold;
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+}
+
+.aspect-options select, .size-options input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    margin-bottom: 10px;
+}
+
+.size-options {
+    display: flex;
+    flex-direction: column;
+}
+
+.size-options input {
+    width: auto;
+}
